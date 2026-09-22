@@ -58,8 +58,13 @@
   // la seule information necessaire ici (« quelque chose ecoute »), pas le
   // contenu de la reponse.
   var LOCAL_URL = 'https://energieme.tail39b189.ts.net/';
+  // Sonde /login plutot que / : la racine passe par une redirection 308
+  // (home_accueil, caddy/Caddyfile) qui elle-meme peut renvoyer vers /login
+  // si personne n'est connecte -- 2 sauts opaques a la suite au lieu d'1 seul,
+  // constate comme un probable facteur de faux "injoignable" (22.09.2026).
+  var PROBE_URL = 'https://energieme.tail39b189.ts.net/login';
   var CLOUD_URL = 'https://cordialschooner337.grafana.net/d/energie-me-accueil-lite?kiosk';
-  var TIMEOUT_MS = 2500;
+  var TIMEOUT_MS = 4000;
 
   function goTo(url, label) {
     document.getElementById('status').textContent = label + '…';
@@ -73,7 +78,7 @@
   } else {
     var controller = new AbortController();
     var timer = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
-    fetch(LOCAL_URL, { mode: 'no-cors', cache: 'no-store', signal: controller.signal })
+    fetch(PROBE_URL, { mode: 'no-cors', cache: 'no-store', signal: controller.signal })
       .then(function () {
         clearTimeout(timer);
         goTo(LOCAL_URL, 'Redirection vers le local');
