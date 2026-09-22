@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>energie_ME</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #111217;
+    color: #d8d9da;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card { text-align: center; padding: 24px; max-width: 480px; }
+  .spinner {
+    width: 34px;
+    height: 34px;
+    margin: 0 auto 16px;
+    border: 3px solid rgba(255, 255, 255, .15);
+    border-top-color: #6e9fff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #status { font-size: 15px; line-height: 1.5; margin-bottom: 20px; }
+  .links a {
+    display: inline-block;
+    margin: 0 8px;
+    color: #6e9fff;
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .links a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="spinner"></div>
+  <div id="status">Détection de l'accès local…</div>
+  <div class="links">
+    <a href="https://energieme.tail39b189.ts.net/">Local</a>
+    ·
+    <a href="https://cordialschooner337.grafana.net/d/energie-me-accueil-lite?kiosk">Cloud</a>
+  </div>
+</div>
+<script>
+  // Redirection auto local/Cloud (energie_ME). Local = Grafana derriere Caddy,
+  // expose publiquement via Tailscale Funnel sur le meme hostname que le
+  // tailnet (voir caddy/Caddyfile, bloc :8080). Si Docker/Caddy/ms-47 est
+  // arrete, aucune connexion n'aboutit sur ce hostname -> repli Cloud.
+  //
+  // fetch en mode 'no-cors' : on ne peut pas lire le statut HTTP (opaque),
+  // mais la promesse REJETTE en cas d'echec reseau (DNS, TCP refuse/timeout,
+  // TLS) et RESOUT des qu'une reponse arrive, quel que soit son code — c'est
+  // la seule information necessaire ici (« quelque chose ecoute »), pas le
+  // contenu de la reponse.
+  var LOCAL_URL = 'https://energieme.tail39b189.ts.net/';
+  var CLOUD_URL = 'https://cordialschooner337.grafana.net/d/energie-me-accueil-lite?kiosk';
+  var TIMEOUT_MS = 2500;
+
+  function goTo(url, label) {
+    document.getElementById('status').textContent = label + '…';
+    location.replace(url);
+  }
+
+  if (!window.fetch || !window.AbortController) {
+    // Navigateur trop ancien pour la detection : repli statique sur les
+    // liens manuels deja affiches, pas de redirection automatique.
+    document.getElementById('status').textContent = 'Choisis une destination ci-dessous.';
+  } else {
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
+    fetch(LOCAL_URL, { mode: 'no-cors', cache: 'no-store', signal: controller.signal })
+      .then(function () {
+        clearTimeout(timer);
+        goTo(LOCAL_URL, 'Redirection vers le local');
+      })
+      .catch(function () {
+        clearTimeout(timer);
+        goTo(CLOUD_URL, 'Local injoignable, redirection vers le Cloud');
+      });
+  }
+</script>
+</body>
+</html>
